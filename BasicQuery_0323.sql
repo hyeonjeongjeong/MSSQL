@@ -694,3 +694,516 @@ update emptest set sal =0 where job =( select job from emptest where ename = 'sc
 begin tran 
 
 select * from emptest
+
+
+
+----------------------------------------------------------------------------------------------
+-- DDL 정의어 >> Create , alter , drop
+-- 1. DB 만들었지롱
+-- 2. 그 저장소안에 .. TABLE 생성하고 놀쟈
+
+
+sp_helpDB kosadb --DB 기본 정보 조회하기 
+
+-- DDL table 생성
+create table emp10  -- class emp10 { public int empno {get;set;} }
+(
+	empno int,
+	ename nvarchar(20),
+	hiredate datetime
+
+)
+
+/*
+char(10) >> 영문자 ,특수문자, 공백 10자 or 한글 5자 저장하는 타입    >> 고정길이 문자열
+varchar(10) >> 영문자 ,특수문자, 공백 10자 or 한글 5자 저장하는 타입 >> 가변길이 문자열
+
+데이터가 '남' 또는 '여' / 주민번호 등의 고정된 데이터는 char를 써야댄다.
+create table T ( gender char(2))   (0)  >> 내부적으로 성능이 좋음 
+create table T ( gender varchar(2))
+
+데이터가 사람의 이름 : ... 이수한무, 정재현 ...
+create table T (name char(50))  >> 6바이트 들어가도 >> 50바이트 그대로 잡고있음
+create table T (name varchar(50)) >> 6바이트가 들어가도 >> 6바이트 잡음
+
+영문자와 한글을 섞어쓰면 ?
+unicode 
+create table T ( gender nchar(4))   >>  개수 4글자 (영문자 특수문자 공백 상관없이 4글자 )
+create table T ( gender nvarchar(4))
+*/
+
+-- 테이블 정보
+
+sp_help emp10 -- 암 기 
+
+insert into emp10(empno, ename, hiredate)
+values (100,'정재현',getdate())
+
+select * from emp10
+
+create table member2(
+id int,
+name varchar(20),
+adress varchar(50),
+birth datetime,
+hobby varchar(100),
+)
+
+sp_help member2
+
+insert into member2(id,name,adress,birth,hobby)
+values(1,'김정우','서울시','1996-12-12','댄스')
+
+select * from member2
+-- hobby >> null
+
+insert into member2(id)
+values(3)
+
+select * from member2 
+
+-- 1. 기존테이블에 컬럼 추가하기
+alter table member2
+add gender char(1) 
+
+sp_help member2
+
+--2. 기존 테이블에 기존 컬럼에 타입 변경하기 
+alter table member2
+alter column gender char(2)
+
+alter table member2
+drop column gender
+
+--3. 테이블 삭 제 해 버 림
+drop table member2
+
+sp_help member2
+
+create table emp03(
+empno int not null, --empno는 null값을 허락하지 않아 넌 필 수 입 력
+ename varchar(20) --default null 허용 - 부 가 입 력
+)
+
+insert into emp03(empno) values(0819)
+
+select * from emp03
+
+insert into emp03(ename) values('정재현') --열 'empno'에 NULL 값을 삽입할 수 없습니다. empno는 notnull이 있기 때문에 null 허용 안함
+
+insert into emp03(empno, ename) values(7902,'김정우')
+
+select * from emp03
+
+create table emp04
+(
+	 empno int default 1000,
+	 ename varchar(20)
+)
+sp_help emp04 --default 확인
+
+insert into emp04(empno, ename) values (1111,'김씨')
+
+select * from emp04
+
+insert into emp04(ename) values ('박씨')
+insert into emp04(ename) values ('이씨')
+
+select * from emp04
+
+sp_helpconstraint emp04
+
+-- DF__emp04__empno__37A5467C 제약 이름임 (이름을 가지고 나중에 수정하거나 삭제할때 사용해야함)
+
+create table emp05 
+(
+	empno int constraint df_emp04_empno default 1000,
+	ename varchar(20)
+)
+-- df_emp04_empno 관용적 표현 / df_테이블명_컬럼명 대부분 개발자가 관용적 표현 사용
+
+sp_helpconstraint emp05
+
+create table user02(
+	u_id int not null,
+	u_name nvarchar(20),
+	u_job varchar(50) constraint df_user02_u_job default 'IT'
+)
+
+sp_helpconstraint user02
+
+insert into user02(u_id, u_name, u_job)
+values(10,'정재현','가수')
+
+select * from user02
+
+insert into user02(u_id, u_name)
+values(20,'김도영')
+
+-- 회원테이블에서 default 마니쓰는거 .. 가입날짜 ( getdate())
+
+--------------------------------------------------------------
+-- 제약 (constraint)
+/*
+Data intergrity를 위한 방법 ( 무 결 성 )
+제약의 방법
+1. 테이블 생성시 정의하는 방법 : create table 문 사용
+2. 만들어진 테이블에 정의하는 방법 : alter table 문 사용 *^^*
+
+제약의 종류
+
+1. NOT NULL
+
+2. DEFAULT
+
+3. PRIMARY KEY (not null + unique) >> 주민번호, 순번 , 지문...한개의 row를 반환받을 수 있다.
+                                   >> where num = 1,where jumin = 123456-1234567
+								   >> primary를 하면 검색 마니하겠군.. 속도 향상을 위해 내부적으로 인덱스 만들어야지..
+								   >> 테이블 당 1개 ( 묶음 ) > 1개 2개() 3개() >> 복합키가 가능하다.
+
+4. UNIQUE  (중복값 허락 안함)  >>  not null을 강제하지 않음
+							   >> 검색 index 
+							   >> 컬럼 수 만큼 
+
+5. CHECK ( 남  또는 여 데이터만 들어올 수 있음, 1 ~ 10 까지만 ) where gender in ('남','여')
+
+
+6. FOREIGN KEY					>> T O D A Y P O I N T (외래키, 참조키) 참조제약
+                                >> 테이블과 테이블간의 [ 관계를 성립 ] 시 사용 RDBMS
+								>> 관계) 부모 자식, master detail 
+								>> emp .... dept
+								>> Emp 테이블에 deptno 컬럼이 det deptno 컬럼을 참조한다.(FK)
+								>> dept detpno 컬럼은 emp deptno컬럼에 참조를 당합니다.(PK)
+
+
+*/
+select * from emp
+select * from dept
+
+create table emp06(
+	-- empno int primary key, 이렇게 쓰면 찾기 어려워
+	empno int constraint pk_emp06_empno primary key, --pk_emp06_empno
+	ename varchar(20),
+)
+
+sp_helpconstraint emp06
+
+insert into emp06(empno, ename)
+values(100, '김유신')
+
+insert into emp06(empno, ename)  --PRIMARY KEY 제약 조건 'pk_emp06_empno'을(를) 위반했습니다.
+values(100,'정재현')
+
+insert into emp06(ename) --열 'empno'에 NULL 값을 삽입할 수 없습니다.
+values('김유신') -- 열에는 NULL을 사용할 수 없습니다.
+
+-- 테이블 당 1개 (묶어서)
+-- 복합키 
+
+create table pktable 
+(
+	a int,
+	b int,
+	c int 
+	
+	constraint pk_pktable_a_b primary key(a,b) -- A먼저 B다음
+)
+
+-- 복합키 순서가 
+-- where b = 10 (문제가 있음 .. index를 안탐)
+-- where a = 10 and b = 10( 조은케이스..)
+-- where a = 10 .... 
+
+sp_helpconstraint pktable
+
+/*
+이력 테이블 데이터 설계는 보통 복합키가 나옴
+
+인사테이블 
+2000  1  IT
+2000  2  SALES
+
+학력테이블
+2000  1 인천고
+2000  2 인천대
+
+*/
+
+create table emp07
+(
+	empno int constraint uk_emp07_empno unique, --중복데이터를 허락하지 않아요 -- UNIQUE (non-clustered)
+	ename varchar(20)
+
+)
+sp_helpconstraint emp07 
+
+insert into emp07(empno, ename) values(1000, '정씨')
+select * from emp07
+
+insert into emp07(ename) values('정씨')
+insert into emp07(ename) values('박씨')
+--UNIQUE KEY 제약 조건 'uk_emp07_empno'을(를) 위반
+--중복 키 값은 (<NULL>)입니다.
+
+create table emp08(
+empno int not null constraint uk_emp08_empno unique,
+ename varchar(20)
+)
+
+-- 그러면 empno int not null constraint uk_emp08_empno unique은 >>primary key랑 같은ㄱ ㅓ아님?
+-- 아뉘 다르지롱 constraint는 컬럼갯수만큼 priamry는 1개만 할 수있음
+
+--중복값을 허락하지 않지만 null은 허용하고 null도 중복쪠끄를 한다 
+
+create table emp09(
+	u_id int constraint pk_emp09_u_id primary key,
+	u_name varchar(20) not null,
+	reg_num1 char(6) not null constraint uk_emp09_regnum1 unique,
+	reg_num2 char(7) not null constraint uk_emp09_regnum2 unique,
+	u_job nvarchar(20) constraint df_emp09_u_job default 'IT'
+)
+
+sp_helpconstraint emp09
+
+
+create table emp11(
+	empno int constraint pk_emp10_empno primary key,
+	ename varchar(20) not null,
+	gender char(2) constraint ck_emp10_emmp10_gender check(gender in ( '남','여'))
+)
+
+sp_helpconstraint emp11
+
+insert into emp11(empno, ename, gender) values(1000,'김','중')
+--INSERT 문이 CHECK 제약 조건 "ck_emp10_emmp10_gender"과(와) 충돌했습니다.
+
+insert into emp11(empno, ename, gender) values(1000,'김','남')
+
+-- 참조 제 약
+select * from emp
+
+select * from dept
+
+-- MSSQL은 NOT NULL 하지 않은 컬럼에 대해 .. PK를 못구하게 되어있음
+alter table dept
+alter column deptno int not null
+
+alter table dept 
+add constraint pk_dept_deptno primary key(deptno)
+--테이블 'dept'의 Null 허용 열에 PRIMARY KEY 제약 조건을 정의할 수 없습니다
+-- not null한 것만 추가적으로 pk를 걸 수 있음
+
+alter table emp
+add constraint fk_emp_deptno foreign key(deptno) references dept(deptno)
+--참조되는 테이블 'dept'에 외래 키 'fk_emp_deptno'의 참조 열 목록과 일치하는 기본 키 또는 후보 키가 없습니다.
+
+-- 반드시 참조하는 테이블에 pk가 선행되어야 한다.
+-- 그 다음에 fk 할 수 있음 emp 테이블에 empno는 dept테이블이 갖고있는 데이터만 허용함
+
+--옵션
+--identity(증가분)
+-- 채번(번호표)
+-- sequence (객체 번호표) : oracle, mssql
+
+create table board(
+board int identity(1,1),
+title varchar(20),
+)
+
+insert into board(title) values('방가방가')
+
+select * from board
+
+create table emp20(
+	a int , 
+	b int,
+	c as a+b -- 계산된 열
+)
+
+insert into emp20(a,b) values (100,300)
+
+select * from emp20
+
+-------------------------------------------------------------------
+--VIEW ( 가 상 테 이 블 ) 
+-- 어떤사람 : Sql 문장 덩어리
+-- VIEW는 객체 (create ..  drop전까지 살아있음) - 데이터를 갖고 있지 않음
+
+Create view tbl_emp
+as
+	select empno, ename, job, deptno from emp
+
+-- ㅅㅏ용법 : 가상 테이블 >> 테이블처럼 사용 >>view를 통해 데이터를 본다
+
+select * from tbl_emp --view가 가지고 있는 sql문장이 실행됨
+
+select * from tbl_emp where deptno = 10 --view를 통해 볼수있는데이터는 다 가지고 놀 수 있음
+
+
+sp_help tbl_emp 
+--owner : dbo	type : view	name : tbl_emp	2022-03-24 14:48:01.600
+
+sp_helptext tbl_emp
+--- select empno, ename, job, deptno from emp
+
+
+
+--편리성 *** ( 쿼리 단순화 >> 물리적인 테이블이 없는 경우  >> 뷰를 통해 가상테이블을 만들어 사용 >> JOIN)
+Create view v_emp --부서번호 , 부서이름, 사번 ... 매번 조인해야함..
+as
+ select empno, ename, e.deptno, dname from emp e inner join dept d 
+ on e.deptno = d.deptno
+
+ select * from v_emp
+
+ --복잡하거나 자주쓰는건 view를 만들어놓고 뷰를 통해 사용ㅎ ㅏ면  편하자나~
+
+ --결과) 기존에 배운 쿼리를 다 알고 있다면 view는 공짜로..(?)
+ --직업이 salesman인 사람들의 이름, 월급, 직업만 보여주는 view를 만들어라
+
+ create view vv_emp
+ as
+ select empno, sal, job from emp where job = 'salesman'
+
+ select * from vv_emp 
+
+ --부서번호가 30번인 사원의 이름, 급여, 부서번호를 보여주는 뷰를작성
+create view vvv_emp
+as
+select ename, sal, deptno from emp where deptno =30
+
+select * from vvv_emp
+
+-- view도 테이블이면 DML 작업 되뇨?
+-- VIEW 통해서 Insert update delete 작업 가능
+-- View 통해서 원본 테이블에서 view가 볼 수 있는 것만 
+-- 근데 하지 마셈..ㅎㅎ
+
+select * from vvv_emp
+
+begin tran
+update vvv_emp set sal = 0 -- 실제 참조하는 테이블의 데이터가 바뀜
+select * from emp
+select * from vvv_emp
+rollback
+
+--부서별 평균 월급을 담고 있는 view를 만드시오 inline view
+
+create view empavg
+as
+select deptno , avg(sal) as 'avgsal' from emp group by deptno
+
+select * from empavg
+
+select * from emp e join empavg s 
+on e.deptno = s.deptno and e.sal > s.avgsal
+
+--1. 편리성 ( 복잡한 쿼리(조인) .. view를 만들어서 편하게 )
+--2. 가상테이블 (원하는 데이터를 만들어서 ) join 같은것 처리
+
+--사원테이블에서 이름과 월급만 담는 뷰를 작성하되, 월급이 높은순으로 출력하자나
+-- view 생성시 order by 사용하지 마세요
+create view view0002
+as
+select top 20 ename, sal from emp order by sal desc
+
+select * from view0002
+
+--1. 30번 부서 사원들의 직위 이름 월급을 담는 view를 만들어라
+create view emp3030
+as
+select job, ename, sal from emp where deptno = 30
+
+--2. 30번 부서 사원들의  직위, 이름, 월급을 담는 VIEW를 만드는데,-- 각각의 컬럼명을 직위, 사원이름, 월급으로 ALIAS를 주고 월급이-- 300보다 많은 사원들만 추출하도록 하라.create view emp4044asselect job as'직위', ename as'사원이름', sal as '월급' from emp where sal > 300 and deptno = 30select * from emp4044--4. 부서별 평균월급을 담는 VIEW를 만들되, 평균월급이 2000 이상인-- 부서만 출력하도록 하라.
+
+create view emp5050
+as
+select deptno, avg(sal) as '평균월급' from emp 
+ group by deptno where avg(sal) >=2000
+ 
+
+ begin tran
+ update emp set sal = 0
+ 
+ select* from emp with(nolock) -- 나는 다른사람이 트랜잭션진행중이라도 락해제하고 볼거임 -- 업데이트된걸 보여줌
+--데이터의 동기화는 보장하지 못한당
+ 
+
+ select rownum, empno
+from (
+select row_number() over (order by empno) --empno가 정렬된 기준위에서 over 순번을 붙일게 row_num 
+as rownum , empno
+from emp
+) T where t.rownum between 1 and 5 --pagesize = 5인 경우,
+
+
+SELECT T.MEMBER_ID 
+
+FROM ( 
+       SELECT ROW_NUMBER() OVER (ORDER BY MEMBER_ID) AS ROWNUM, MEMBER_ID 
+       FROM MEMBER_TABLE WITH (NOLOCK) ) T -- nolock을 거는 이유 : 게시물쓰고있어도 ㄱㅊ게 하려고 
+       WHERE T.ROWNUM BETWEEN ({pageNo} - 1) * {pageSize} + 1 AND {pageNo} * {pageSize}
+
+
+select empno ,ename
+from emp
+order by empno offset 0 rows fetch next 5 rows only
+
+select empno , ename
+from emp
+order by empno offset 5 rows fetch next 5 rows only
+
+
+select empno , ename
+from emp
+order by empno offset 10 rows fetch next 5 rows only
+
+
+
+with T(deptno,total)
+as
+    (select deptno , sum(sal+isnull(comm,0)) from emp group by deptno)
+select * from T order by total desc; -- 부서번호별 총급여가 많은 순으로 나열함
+
+
+--Q1. DATETIME 데이터 타입을 가지는 @ymd 변수를 선언하고,
+--이 변수에 GETDATE()함수를 사용하여 현재 날짜시간을 저장한 다음 화면에 출력하라.
+
+DECLARE @ymd datetime
+SET @ymd=GETDATE()
+SELECT @ymd
+
+--Q2. INT 데이터 타입을 가지는 @sal 변수를 선언하고, 
+--이 변수에 5000이라는 초기값을 담도록 지정하라. 
+--그리고 EMP 테이블에서 월급이 @sal인 사원의 이름과 월급을 출력하라.
+
+DECLARE @sal int
+SET @sal=5000
+SELECT ENAME, SAL
+FROM EMP
+WHERE SAL=@sal
+-- 하나의 블록안에서 실행해야함
+
+-- EMP 테이블로부터 평균월급을 담는 변수를 선언하고,
+--이 변수를 이용해 평균월급보다 더 많은 월급을 받는 사원의 모든 정보를 출력
+
+Declare @maxsal
+set @maxsal =(select avg(sal) from emp)
+select * from emp where sal >avg(sal)
+
+
+
+
+
+DECLARE @avg int
+
+SET @avg=(SELECT AVG(SAL) FROM EMP)
+
+SELECT *
+
+FROM EMP
+
+WHERE SAL>@avg
+
+
+

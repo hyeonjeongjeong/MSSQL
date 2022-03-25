@@ -698,6 +698,7 @@ select * from emptest
 
 
 ----------------------------------------------------------------------------------------------
+--0324
 -- DDL 정의어 >> Create , alter , drop
 -- 1. DB 만들었지롱
 -- 2. 그 저장소안에 .. TABLE 생성하고 놀쟈
@@ -1114,7 +1115,19 @@ create view emp3030
 as
 select job, ename, sal from emp where deptno = 30
 
---2. 30번 부서 사원들의  직위, 이름, 월급을 담는 VIEW를 만드는데,-- 각각의 컬럼명을 직위, 사원이름, 월급으로 ALIAS를 주고 월급이-- 300보다 많은 사원들만 추출하도록 하라.create view emp4044asselect job as'직위', ename as'사원이름', sal as '월급' from emp where sal > 300 and deptno = 30select * from emp4044--4. 부서별 평균월급을 담는 VIEW를 만들되, 평균월급이 2000 이상인-- 부서만 출력하도록 하라.
+--2. 30번 부서 사원들의  직위, 이름, 월급을 담는 VIEW를 만드는데,
+-- 각각의 컬럼명을 직위, 사원이름, 월급으로 ALIAS를 주고 월급이
+-- 300보다 많은 사원들만 추출하도록 하라.
+
+create view emp4044
+as
+select job as'직위', ename as'사원이름', sal as '월급' from emp where sal > 300 and deptno = 30
+
+select * from emp4044
+
+
+--4. 부서별 평균월급을 담는 VIEW를 만들되, 평균월급이 2000 이상인
+-- 부서만 출력하도록 하라.
 
 create view emp5050
 as
@@ -1192,18 +1205,959 @@ set @maxsal =(select avg(sal) from emp)
 select * from emp where sal >avg(sal)
 
 
-
-
-
 DECLARE @avg int
-
 SET @avg=(SELECT AVG(SAL) FROM EMP)
-
 SELECT *
-
 FROM EMP
-
 WHERE SAL>@avg
 
+--@1. 변수 @i에 임의의 값을 설정하고 @1의 값이 100보다 작을 경우와
+--100이상일 경우를 나누어 출력 메세지를 다르게 뿌리는
+-- if ~ else 문을 작성해라
+
+declare @i int
+set @i = 250
+if @i < 300
+select convert(varchar(10),@i) + '은 100보다 작습니다'
+else
+select convert(varchar(10),@i) + '은 100보다 큽니다'
+
+--begin ~ end 블록
+declare @sal int 
+set @sal = 2000
+if @sal > = 3000
+	begin
+		print '월급이 3000달러 이상인 사원들'
+		select *
+		from emp
+		where sal >= 3000
+	end
+else
+	begin
+	print '월급이 3000달러 미만인 사원들'
+		select *
+		from emp
+		where sal < 3000
+	end
+	/*
+	declare
+	set
+	if
+		begin
+
+		end
+	else
+		begin
+
+		end
+	*/
+
+-- case ~ when ~ then
+
+select empno , ename, job, deptno,
+		( 
+		case deptno when 10 then 'A'	
+					when 20 then 'B'
+					when 30 then 'C'
+					when 40 then 'D'
+		else 
+		   '방가방가'
+		end
+		) as '하나의컬럼' ,111 as '데이터1', 222 as '데이터2',333 as '데이터3' -- 테이블에 컬럼이 있는게 아니라 인위적인 것도 데이터가 채워진다.
+		from emp
 
 
+
+		
+select empno , ename, job, deptno,
+		( 
+		case        when deptno = 10 then 'aA'	
+					when deptno between 20 and 30 then 'Bb'
+					when deptno in (40, 50) then 'Cc'
+		else 
+		   '방가방가'
+		end
+		) as '하나의컬럼' ,111 as '데이터1', 222 as '데이터2',333 as '데이터3' -- 테이블에 컬럼이 있는게 아니라 인위적인 것도 데이터가 채워진다.
+		from emp
+
+		select * from emp
+
+
+-- while 1 ~ 10 까지의 합 
+declare @i int, @sum int
+set @i =1
+set @sum = 0
+while @i <=10 
+	begin
+		set @sum = @sum + @i
+		set @i = @i +1
+	end
+	select @sum 
+	/*
+	while (i<=10)
+	{ sum +=10;
+	i++; }
+	*/
+--0325
+	------------------------------------------------------------------
+	--프 로 시 저 -- ex sp_constraint, sp_help 어쩌구
+	-- 장점 : 보안 , 성능(파라미터를 쓸수있어서 되게 넓음), 관리 
+	create proc myproc
+	as
+	select empno, ename from emp
+
+	exec myproc --프로시저 출 력~
+
+	alter proc myproc
+	as
+	select empno, ename, job, sal from emp
+
+	exec myproc
+
+	drop proc myproc
+
+	sp_helptext myproc
+
+	create proc myproc1
+	as
+	update emp
+	set sal = 0
+
+	begin tran
+	exec myproc1
+	select * from emp
+	rollback
+
+	--프로시저 이름
+	-- 시스템.. 프로시저
+	--sp_help
+	--usp_emplist
+	create proc usp_empAllList
+	as
+	select empno, ename, sal
+	from emp
+
+	exec usp_empAllList
+
+	create proc usp_empUpdateSal
+	as
+	update emp
+	set sal = sal *2
+
+	begin tran
+	exec usp_empUpdateSal
+	select * from emp
+	rollback
+
+	-- * input 매개변수 사용 가능 
+	create proc myproc3
+	@i int --input 파라미터
+	as
+	select * from emp where empno = @i
+	update emp 
+	set sal = sal * @i
+	select * from emp where empno = @i
+	exec myproc3 7788
+	exec myproc3 7902
+
+	create proc myproc4
+	@i int 
+	as
+	update emp
+	set sal = sal *@i
+
+	begin tran
+	exec myproc4 100
+
+	select * from emp
+	rollback
+
+	begin tran
+	exec myproc4 --함수 'myproc4'에 매개 변수 '@i'이(가) 필요하지만 제공되지 않았습니다.
+
+	alter proc myproc4
+	@i int = 2 -- 디폴트값을 줄 수 있음, 이러면 파라미터 업어도 되쟈나
+	as
+	update emp
+	set sal = sal *@i
+
+	create proc myproc5
+	@sal int ,
+	@deptno int
+	as 
+	select * from emp
+	where sal < @sal and deptno = @deptno
+
+	begin tran
+	exec myproc5 4000, 20
+
+	--pubs db의 title이라는 테이블에서 책 이름고 ㅏ그 책의 가격을 가져오는
+	--myproc6라는 프로시저를 만들어라 그리고 책 이름과 책의 가격은 사용자로부터 ㅇ비력받고
+	--값을 입력하지 않으면 defualt 어쩌구로 %와 null로 출력디도록 지정
+	select * from titles
+
+	use pubs
+	
+	drop proc myproc66
+
+	create proc myproc66
+	@title varchar(50) = '%',
+	@price int = null
+	as
+	if @price is null
+		begin
+			select title, price from titles
+			where title like @title
+		end
+	else
+		begin
+			select title, price from titles
+			where  price = @price and title like @title
+		end
+	
+	exec myproc66
+	exec myproc66 '%can%'
+	select count(*) from titles
+
+	select * from titles
+
+	exec myproc66 @price = 19.99 --특정 파라미터만 변수면 @price
+	exec myproc66 '%talk%', 19.99 -- straight talk 어쩌구..
+	
+	--시스템 프로시저
+	sp_tables
+	sp_help titles
+	sp_helpdb
+	select * from titles
+
+	--inpub & output
+	create proc myproc7
+	@a int, 
+	@b int,
+	@c int output -- 나는 이것을 값을 담아서 당신에 게 돌 려 줄게요
+	as
+	set @c = @a + @b
+	print @c
+
+	exec myproc7 10,20 --함수 'myproc7'에 매개 변수 '@c'이(가) 필요하지만 제공되지 않았습니다.
+	-- output이라는 함수는 밖에서 받을준비를해야함
+
+	declare @out int 
+	exec myproc7 10,20,@out
+	select @out
+
+-- Q2. 처음 입력한 숫자에 30을 더한 후, 
+-- 더한 값에 두 번째 숫자를 곱한 값을 출력하는 프로시저를 작성하라.
+
+	create proc myproc8
+	@a int,
+	@b int,
+	@c int output,
+	as
+	set @c = (@a+30) *@b 
+	
+
+	declare @out int
+	exec myproc8 10,20 @out output
+	select @out as '결과값'
+
+	create proc myproc9
+	@a int,
+	@b int,
+	@c int output,
+	@d int output
+	as
+	set @c = @a + @b 
+	set @d = @a * @b
+	
+	declare @out_1 int,  @out_2 int
+	exec myproc9 10,20 ,@out_1 output, @out_2 output
+	select @out_1 as 'data_1', @out_2 as 'data_2'
+
+	-- output 말고 return을 사용도 가능
+	--return은 받는방법이 좀 틀려짐
+	use KosaDB
+
+	create proc myproc10
+	as
+		declare @count int
+		set @count = (select count(*) from emp)
+		return @count
+
+		declare @return int
+		exec @return = myproc10
+		select @return
+
+-- return 되는 값의 유무에 따라 로직을 제어할 수 있음
+-- 데이터 존재 유무
+create proc myproc11
+@empno int
+as 
+declare @exist bit
+select @exist = count(*) from emp where empno =@empno
+if @exist >0 
+	begin
+		return 1
+	end
+  else
+	begin
+		return -1
+	end
+
+	declare @exist int
+	exec @exist = myproc11 7788 --데이터가 있으면 1을 리턴해라.
+	select @exist
+
+	
+	declare @exist int
+	exec @exist = myproc11 1000 --데이터가 있으면 1을 리턴해라.
+	select @exist
+
+
+	create proc usp_dept_insert
+	@deptno int,
+	@dname varchar(20),
+	@loc varchar(20)
+	as
+	declare @err int
+
+	begin try
+	insert into dept(deptno, dname, loc)
+	values (@deptno, @dname, @loc)
+	end try
+	
+	begin catch
+	set @err = @@error -- 시스템 변수
+	end catch
+	
+	return @err
+
+	sp_helpconstraint dept
+
+	declare @result int
+	exec @result = usp_dept_insert 100, 'IT','SEOUL'
+	select @result -- 0 이 나오면 정상 나머지는 에러번호..2627번 (프라이머리키 제약에 대한 에러번호)
+
+	
+	select * from dept
+
+	-- 에러 메세지를 보고 싶어요
+
+
+	create proc usp_dept_insert22
+	@deptno int,
+	@dname varchar(20),
+	@loc varchar(20),
+	@message varchar(200) output
+	as
+
+	begin try
+	insert into dept(deptno, dname, loc)
+	values (@deptno, @dname, @loc)
+	end try
+	
+	begin catch
+	set @message = ERROR_MESSAGE()
+	end catch
+	
+	declare @msg varchar(200)
+	exec usp_dept_insert22 200,'IT','BUSAN',@msg output
+	select @msg --PRIMARY KEY 제약 조건 'pk_dept_deptno'을(를) 위반했습니다. 개체 'dbo.DEPT'에 중복 키를 삽입할 수 없습니다. 중복 키 값은 (200)입니다.
+
+
+	--emp 테이블에 부서번호를 update하는 프로시저
+	--logic은 마음대로 
+	create proc numnum
+	@deptno int,
+	@message varchar(200) output
+	as begin try
+		if(@deptno in (select deptno from dept)
+		begin
+		set @message = 1
+		end try
+		set @message = ERROR_MESSAGE()
+
+		declare @msg varchar(200) 
+		exec numnum 300,'it','인천', @msg output
+		select @msg 
+
+
+--동적 프로시저
+declare @dbname varchar(20), @tablename varchar(20)
+set @dbname = 'kosadb'
+set @tablename = 'emp'
+exec ('use' + @dbname + ' select * from ' + @tablename)
+
+create proc usp_db_table
+@dbname varchar(20), 
+@tablename varchar(20)
+as 
+exec ('use' + @dbname + ' select * from ' + @tablename)
+
+exec usp_db_table 'pubs','titles'
+
+exec usp_db_table 'kosadb','emp'
+
+create proc usp_top_select 
+@count int
+as
+select top(@count) * from emp
+order by sal desc
+
+exec usp_top_select 5
+
+
+--사용자 정보 테이블 
+Create Schema Users 
+go 
+
+use_kosaDB
+
+--회원정보를 위한 테이블들 
+Create Table Info
+(
+	userID		varchar(20)		not null primary key,
+	Name		varchar(20)		not null,
+	password	varchar(30)		not null,
+	email		varchar(20)		not null,
+	mobile		varchar(13)		not null,
+	zipCode		char(7)			not null,
+	address		varchar(50)		not null,
+	iDate		DateTime		not null,
+	uDate		DateTime		not null
+)
+go
+
+	
+Create Table Active
+(
+	userID		varchar(20)		not null primary key
+)
+go
+
+Create Table Deleted
+(
+	userID		varchar(20)		not null primary key
+)
+go
+
+
+--회원데이타를 다루기 위한 저장프로시져들 
+alter Proc up_Get_UsersInfo
+(
+	@userID		varchar(20)
+)
+as
+select userID, Name, password, email, mobile, zipCode, address, iDate, uDate
+from Info where userid=@userID
+go
+
+
+Create PROC up_Get_LoginChk
+	@UserID   varchar (20), 
+	@Password varchar (30), 
+	@iRet int output
+AS
+	SET @iRet = 0  
+		IF NOT EXISTS(SELECT * FROM Active WHERE UserID  =  @UserID)
+		SET @iRet  = -1 
+ELSE
+	BEGIN  
+		IF NOT EXISTS(SELECT PASSWORD FROM Info WHERE USERID  = @UserID AND PASSWORD  =@Password)
+			SET @iRet  = -2 
+		ELSE 		
+			SET @iRet  = 1 
+	END 
+go
+
+
+--이미 등록된 유저의 경우(userID:-1, email:-2)
+Create Proc up_Add_UsersInfo
+
+	@userID			varchar(20),
+	@New_Name		varchar(20),
+	@New_Password	varchar(30),
+	@New_Email		varchar(20),
+	@New_Mobile		varchar(13),
+	@New_ZipCode	varchar(7),
+	@New_Address	varchar(50),
+	@iRetmsg		int output
+as
+SET @iRetmsg = 0 
+    IF(EXISTS(SELECT USERID FROM INFO  WHERE UserID = @userID))
+			SET @iRetmsg = -1 
+		ELSE IF (EXISTS(SELECT email   FROM INFO  WHERE email = @New_Email))
+			SET @iRetmsg = -2
+	ELSE
+		BEGIN 
+			BEGIN TRAN
+			INSERT INTO Info(userID, Name, password, email, mobile, zipCode, address, idate, udate) 
+			VALUES (@userID, @New_Name, @New_password, @New_email, @New_mobile, @New_zipCode, @New_address,	
+					GetDate(), GetDate())
+				SET @iRetmsg = @@RowCount -- 반영된 행의 갯수
+				IF @iRetmsg >= 1 
+					BEGIN 
+						INSERT INTO Active( UserID ) VALUES ( @userID ) --회원가입 성공시
+						SET @iRetmsg = @@RowCount
+					END
+				ELSE
+					SET @iRetmsg = 0 
+					IF @iRetmsg < 1
+					begin
+						ROLLBACK TRAN 	
+					end
+			  COMMIT TRAN 
+		END
+go 
+
+Create Proc up_Update_UsersInfo
+(
+	@userID			varchar(20),
+	@New_Name		varchar(20),
+	@New_Password	varchar(30),
+	@New_Email		varchar(20),
+	@New_Mobile		varchar(13),
+	@New_ZipCode	varchar(7),
+	@New_Address	varchar(50)
+)
+as
+UPDATE Info SET Name=@New_Name, password=@New_Password, email=@New_Email, 
+	mobile=@New_Mobile, zipCode=@New_Zipcode, address=@New_Address
+WHERE userID=@userID
+go
+
+
+Create Proc up_Delete_UsersInfo
+(
+	@userID		varchar(20)
+)
+as
+	EXEC up_Delete_UsersActive @userID
+	EXEC up_Delete_UsersDeleted @userID
+	
+	DELETE FROM Info
+	WHERE userID=@userID
+go
+
+Create Proc up_Delete_UsersActive
+(
+	@userID		varchar(20)
+)
+as
+	DELETE FROM Active WHERE userID=@userID
+go 
+
+Create Proc up_Delete_UsersDeleted
+(
+	@userID		varchar(20)
+)
+as
+	DELETE FROM Deleted WHERE userID=@userID
+go 
+
+
+--우편번호 검색을 위한 프로시져 
+/*Create Proc up_GetList_PostCode_Search
+(
+	@juso	varchar(50)
+)
+as
+Select zipCode, zipSerial, sido, gugun, dong, ri, doseo, bungi, building, juso 
+From PostCode 
+Where juso like '%'+ LTrim(RTrim(@juso))+'%'
+
+
+--test
+exec up_GetList_PostCode_Search '역삼'
+*/
+
+--1. 회원가입하기 
+
+declare @returnvalue int
+exec up_Add_UsersInfo 'hong','홍길동','0819','jaehyeon@naver.com',
+'010-6210-5345','123-123','서울시 강남구',@returnvalue output
+select @returnvalue 
+
+declare @returnvalue int
+exec up_Add_UsersInfo 'hong2','홍길동','0819','jaehyeon@naver.com',
+'010-1234-1234','123-123','서울시 강남구',@returnvalue output
+select @returnvalue  -- -2 가 결과값으로 나옴
+
+select * from Info
+select * from active
+
+exec up_get_usersinfo 'hong'
+
+exec up_Update_UsersInfo 'hong','홍길동','0819','jaehyeon@naver.com',
+'010-1111-1122','123-123','서울시 성북구'
+
+exec up_Delete_UsersInfo 'hong'
+
+select* from info
+
+select *from active
+
+--프로시저를 사용한 CRUD
+-- create > insert
+-- read > select
+-- update > update
+-- delete > delete 
+
+-- 단일 테이블에 대해서 ... 5개의 기능을 만듬
+/*
+c#에서 model 구성(DAO > C# 함수 만듬
+
+회원테이블이 member
+public List<member> getAllmember(){
+	쿼리를 짜주면 됨니다...select * from emp
+}
+
+public member getAllMemberByUserId(string userid){
+	쿼리..select * from emp where empno = 7788
+}
+
+public int insertMember(member m){ (객체를 파라미터로 받음)
+	쿼리
+}
+
+
+전체 데이터 조회 (select * from emp)
+단일 데이터 조회 (select * from emp where empno = 7788 ) pk제약이 걸린 조회
+삽입             (insert 
+삭제			 (delete
+수정			 (update
+
+추가
+검색들
+문자열 검색, 조건(이름, 나이로 검색하는 거임)
+*/
+
+--게시판을 가정해서 테이블 하나 만들고 그걸가지고 다섯개의 프로시저를 만들기 오후 한시간 정도 과제
+
+create table kosaboard(
+	boardid int identity(1,1) constraint pk_kosaboard_boardid primary key,
+	title nvarchar(30) not null,
+	content nvarchar(2000) not null,
+	userid nvarchar(20) not null,
+	regdate datetime default getdate(),
+	filename nvarchar(30),
+)
+
+-- 프로시저 다섯개 최대한 예뿌게... 조별로 배운거 최대한 활용해서 실무에 가깝게...;;;
+-- 전체데이터조회 , 단일데이터조회, 삽입, 삭제, 수정
+
+create proc kosaboard_check_all()
+as
+begin
+update board set 뭘바꾸지? where 파라미터
+select boardid, title, content, userid, regdate, filename from kosaboard where (파라미터)
+end
+
+
+create proc kosaboard_check_all
+as
+select *  from kosaboard 
+
+create proc data_check_one111111(
+@boardid  int,
+@title nvarchar(30),
+@content nvarchar(2000),
+@userid nvarchar(20),
+@regdate nvarchar(100),
+@filename nvarchar(30),
+@user_num int output)
+
+create proc data_check_one
+@boardid  int,
+@title nvarchar(30),
+@content nvarchar(2000),
+@userid nvarchar(20),
+@regdate nvarchar(100),
+@filename nvarchar(30),
+@user_num int output
+as
+begin
+set @user_num = 1
+if not exists (select * from kosaboard where boardid = @boardid)
+set @user_num = 0
+else if not exists (select * from kosaboard where title = @title)
+set @user_num = 2
+else if not exists (select * from kosaboard where content = @content)
+set @user_num = 3
+else if not exists (select * from kosaboard where userid = @userid)
+set @user_num = 4
+else if not exists (select * from kosaboard where regdate = @regdate)
+set @user_num = 5
+else not exists  (select * from kosaboard where filename = @filename )
+set @user_num = 6
+
+
+drop proc data_check_one
+
+
+create proc data_check_one11(
+@boardid int,
+@userid varchar(50),
+@message1 varchar(50) output)
+as
+begin
+if exists (select boardid from kosaboard where boardid = @boardid)
+else if  exists(select userid from kosaboard where userid = @userid)
+else set @message = ERROR_MESSAGE()
+end
+
+
+
+
+-- substring(), max(), min(), avg() 시스템함수
+-- public string fn_sum(int val, int val2){ return val + val2 }
+
+create function fn_sum
+(@val01 int, @val02 int)
+returns int -- public int ( 리턴 타입을 정의 )
+as
+begin
+	return (@val01 + @val02)-- return val + val2 (파라미터로 받은 01+02 리턴 값을 정의 )
+end
+
+
+select dbo.fn_sum(100,200)
+
+--함수를 만들어 사용하는 자원
+/*
+문자, 날짜에 관련된것을 조작해서 ... 
+*/
+create function fn_dateformat
+(
+	@indate datetime,
+	@op char(1)
+)
+returns nchar(20)
+as 
+	begin
+	 return convert(nvarchar(20), datepart(yy,@indate)) + @op + 
+			convert(nvarchar(20), datepart(mm,@indate)) + @op +
+			convert(nvarchar(20), datepart(dd,@indate))
+	end
+
+select dbo.fn_dateformat(getdate(),'/')
+select dbo.fn_dateformat(getdate(),'.')
+
+select empno, ename, hiredate from emp,dbo.fn_dateformat(hiredate,'-')
+from emp
+
+/*
+건설회사
+
+급여테이블
+정규직 : 월급여
+일용직 : 하루일당 + 점심갑
+시간직 : 시간 * 금액
+
+사번 이름  월급여  일당  식대  시간  금액
+100   정     10
+200   일            100   10
+300   시                         5    500
+400   정기   20
+
+[모든 행마다] 총 급여 계산할때 계산 방식...이 달라...
+
+커서는 보통 급여나 카드명세서..에서 사용된다.
+*/
+
+-- 학생 테이블에서 각 학생의 시험 점수를 가지고, 
+--‘수,우,미,양,가’ 형식의 값을 지정하는 커서 작성 예
+
+create table student
+(
+id int primary key,
+name varchar(20) not null,
+value tinyint not null, -- 점수
+grade nchar(1) -- '수,우,미,양,가'
+)
+
+insert into student(id, name, value)
+values(1, '철수', 60)
+insert into student(id, name, value)
+values(2, '영희', 80)
+insert into student(id, name, value)
+values(3, '인호', 50)
+
+select * from student
+
+--커서예시
+declare std_cursor cursor --커서 선언
+for
+	select value from student -- 커서가 쓰는 데이터 -- 원본
+	for update 
+	open std_cursor-- 이때 select ~ 가 실행되서 메모리에 올라감
+	declare @value tinyint, @grade nchar(1)
+	fetch next from std_cursor into @value --접근해서 가져옴
+	while(@@FETCH_STATUS =0) -- 0이면 계속돌아요잉
+	begin
+		if(@value >=90)
+			set @grade = '수'
+		else if(@value >=80)
+			set @grade = '우'
+			else if(@value >=70)
+			set @grade = '미'
+			else if(@value >=60)
+			set @grade = '양'
+			else 
+			set @grade = '가'
+		update student
+		set grade = @grade 
+		where current of std_cursor
+
+		fetch next from std_cursor into @value
+	end
+	close std_cursor
+	deallocate std_cursor
+
+-------------------------------------------
+
+declare std_cursor cursor
+for
+select value
+from student
+for update
+open std_cursor
+declare @value tinyint
+fetch next from std_cursor into @value
+while (@@fetch_status=0)
+	begin
+		update student
+		set grade=(case
+			when @value between 90 and 100 then N'수'
+			when @value between 80 and 89 then N'우'
+			when @value between 70 and 79 then N'미'
+			when @value between 60 and 69 then N'양'
+			else N'가'
+		end)
+		where current of std_cursor -- 커서가 가리키는 현재 레코드
+	fetch next from std_cursor into @value
+end
+close std_cursor
+deallocate std_cursor
+select * from student
+-------------------------------------------
+use northwind
+
+declare employee_cusor cursor for
+	select lastname, firstname
+	from employees
+	where lastname like 'b%' --이름이 b로 시작하는 emp의 이름을 메모리에 올릴게!
+
+open employee_cusor
+
+fetch next from employee_cusor
+while @@fetch_status = 0
+begin
+	fetch next from employee_cusor
+end
+
+close employee_cusor
+deallocate employee_cusor
+
+-----------------------------------
+
+use testdb
+
+drop table test
+create table test(
+col1 char(1),
+col2 int
+)
+
+insert into test values('a',10)
+insert into test values('b',20)
+insert into test values('c',30)
+insert into test values('d',40)
+insert into test values('e',50)
+
+declare @col1 char(1)
+       ,@col2 int
+       ,@col3 int
+
+set @col3 = 0
+declare cur_test cursor
+	for select col1,col2 from test
+open cur_test
+	fetch next from cur_test into @col1, @col2
+while @@fetch_status = 0
+	begin
+		set @col3  = @col3 + @col2   --누적데이터 구하기
+		select @col1 , @col2 , @col3
+		fetch next from cur_test into @col1, @col2
+	end
+
+close cur_test
+deallocate cur_test 
+
+select * from test
+---------------------------------------------------------
+
+--결국에는 커서내용을 프로시저안에 집어넣는겨
+create proc sal_date_process
+as
+	--커서내용이 들어감
+
+	--연말이 되면 프로시저 호출
+	-- 스케줄링..(배치프로그램을 만듬)
+	-- 특정 시간이 되면 자동으로 ...
+	exec sal_date_process 
+
+
+----------------------------------------
+	CREATE TABLE MY_FRIEND(
+NAME NVARCHAR(20),
+AGE NUMERIC(3)
+)
+
+INSERT INTO MY_FRIEND(NAME,AGE)VALUES('홍길동',20)
+INSERT INTO MY_FRIEND(NAME,AGE)VALUES('홍길순',25)
+INSERT INTO MY_FRIEND(NAME,AGE)VALUES('김철수',22)
+INSERT INTO MY_FRIEND(NAME,AGE)VALUES('김민수',27)
+
+
+--변수 선언 조회한 컬럼을 담을 변수도 선언해야한다.
+create proc update_cursor_friend
+as
+DECLARE 
+@INDEX INT,
+@NAME VARCHAR(100),
+@AGE INT           
+
+SET @INDEX = 0; --INDEX초기화
+
+DECLARE CUR CURSOR FOR   --CUR라는 이름의 커서 선언
+
+SELECT --쿼리 조회
+NAME,
+AGE                
+FROM MY_FRIEND
+
+OPEN CUR      --커서 오픈
+FETCH NEXT FROM CUR INTO @NAME,@AGE  --SELECT한 값을 @NAME,@AGE 변수에 넣는다.
+
+--커서를이용해 한ROW씩 읽음 
+WHILE @@FETCH_STATUS = 0
+BEGIN
+SET @INDEX = @INDEX + 1; --INDEX증가
+
+--SELECT 한 데이터의 행집합을 가지고 수행할 작업
+UPDATE MY_FRIEND
+SET AGE = @AGE+1 --나이+1
+WHERE NAME = @NAME
+	
+FETCH NEXT FROM CUR INTO @NAME,@AGE	--다음ROW로 이동
+END
+
+--커서 닫고 초기화
+CLOSE CUR
+DEALLOCATE CUR
+
+
+exec update_cursor_friend
+
+select * from MY_FRIEND
